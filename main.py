@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 import random
 import pyperclip
+import json
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
 def password():
     letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
@@ -28,18 +29,55 @@ def password():
 # ---------------------------- SAVE PASSWORD ------------------------------- #
 
 def save():
-    data = f"{website_input.get()} | {email_input.get()} | {password_input.get()}\n"
-    if len(website_input.get()) <= 0 or len(password_input.get()) <= 0:
+    website = website_input.get()
+    email = email_input.get()
+    password = password_input.get()
+    new_data = {
+        website: {
+            "email": email,
+            "password": password,
+        }
+    }
+
+    if len(website) <= 0 or len(password) <= 0:
         messagebox.showinfo(message="Missing Fields, Please input all the details")
     else:
-        is_ok = messagebox.askokcancel(title=website_input.get(), message=f"These are the details entered: Website input : {website_input.get()}\n Email input: {email_input.get()}\n Password input:{password_input.get()}\n ")
+        is_ok = messagebox.askokcancel(title=website, message=f"These are the details entered: Website input : "
+                                                              f"{website}\n Email input: {email}\n Password input:{password}\n ")
 
         if is_ok:
-            my_file= open("passwords.txt", "a")
-            my_file.write(data)
-            my_file.close()
-            website_input.delete(0, END)
-            password_input.delete(0, END)
+            try:
+                with open("data.json", "r") as data_file:
+                    #load the data into a variable
+                    data = json.load(data_file)
+            except FileNotFoundError:
+                with open("data.json", "w") as data_file:
+                    json.dump(new_data, data_file, indent=4)
+            else:
+                data.update(new_data)
+                with open("data.json", "w") as data_file:
+                    #saving updated data
+                    json.dump(data, data_file, indent=4)
+                    #cleaning the text inputs
+            finally:
+                website_input.delete(0, END)
+                password_input.delete(0, END)
+
+#----------------------------- SEARCH PASSWORD -------------------------#
+def search():
+    website_info = website_input.get()
+    try:
+        with open("data.json", "r") as data_file:
+            data= json.load(data_file)
+            website_data = data[website_info]
+            email = website_data["email"]
+            password = website_data["password"]
+    except FileNotFoundError:
+        messagebox.showinfo(message="File Not Found")
+    except KeyError:
+        messagebox.showinfo(message="This website doesn't exist")
+    else:
+        messagebox.showinfo(message=f"The email is {email}\n The password is: {password}")
 
 # ---------------------------- UI SETUP ------------------------------- #
 my_window = Tk()
@@ -63,22 +101,25 @@ my_password = Label(text="Password")
 my_password.grid(column=0, row=3)
 
 #Buttons
-generate_password = Button(text="Generate Password", command=password)
+generate_password = Button(text="Generate Password", width=20, command=password)
 generate_password.grid(column=2, row=3)
 
 add_password = Button(text="Add", width=35, command=save)
 add_password.grid(column=1, columnspan=2, row=4)
 
+search_button = Button(text="Search", width=20, command=search)
+search_button.grid(column=2, row=1)
+
 #Text inputs
 website_input = Entry(width=35)
-website_input.grid(column=1, columnspan=2, row=1)
+website_input.grid(column=1, row=1)
 website_input.focus()
 
 email_input = Entry(width=35)
-email_input.grid(column=1, columnspan=2, row=2)
+email_input.grid(column=1, row=2)
 email_input.insert(0,"maybemar.hernandez@gmail.com")
 
-password_input = Entry(width=21)
+password_input = Entry(width=35)
 password_input.grid(column=1, row=3)
 
 my_window.mainloop()
